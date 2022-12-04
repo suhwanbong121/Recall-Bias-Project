@@ -38,12 +38,18 @@ generateData <- function(n, x, gamma_t = 0, eta = c(0,0), i){
   return (data.frame(x1,x2,x3,x4,trt,trt_s,y,y1,y0))
 }
 
+######################
+#### Simulation Studies
+######################
 repn = 1000
 result.mat = matrix(NA, nrow = 16, ncol = 8)
+
+# Number of strata
 strata = 20
+
+# Size of block
 bsize = 50
 
-set.seed(1)
 for (i in 1:16){
   if(i<=8){eta = c(0.1, 0.1)} else {eta = c(0.1, 0.2)}
   if(i%%2==1){n = 1000} else {n = 2000}
@@ -90,3 +96,6 @@ for (i in 1:16){
   result.mat[i,c(1,3,5,7)] = abias.col
   result.mat[i,c(2,4,6,8)] = rmse.col
 }
+
+# Result
+result.mat

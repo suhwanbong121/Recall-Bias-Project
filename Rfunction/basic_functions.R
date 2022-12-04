@@ -165,7 +165,7 @@ ML.logistic.over = function(data, zeta = c(0,0)){
 #################################
 ## Stratification 
 #################################
-# Producing count matrix
+# Producing count matrix using score
 SP.set = function(newdata, length, score){
   y = colnames(newdata)[1]
   trt_s = colnames(newdata)[2]
@@ -196,7 +196,6 @@ SP.inference.under = function(count.mat, eta){
   eta0 = eta[1]
   eta1 = eta[2]
   
-  ## The following corresponds to the cells in Table 1. 
   a.star = count.mat[,1] # exposed & case
   b.star = count.mat[,2] # exposed & control
   c.star = count.mat[,3] # unexposed & case
@@ -207,7 +206,7 @@ SP.inference.under = function(count.mat, eta){
   a = c.star + a.star - c
   b = b.star + d.star - d
   
-  # modify the matrix
+  # Modify the matrix using the nearest neighborhood combination method
   mat = Mod.sp(cbind(a,b,c,d))
   if(is.vector(mat)){
     a = mat[1]
@@ -221,7 +220,7 @@ SP.inference.under = function(count.mat, eta){
     d = mat[,4]
   }
   
-  n.vec = a+b + c+d
+  n.vec = a+b+c+d
   
   p1 = a/(a+b)
   p0 = c/(c+d)
@@ -239,7 +238,6 @@ SP.inference.over = function(count.mat, zeta){
   zeta0 = zeta[1]
   zeta1 = zeta[2]
 
-  ## The following corresponds to the cells in Table 1.
   a.star = count.mat[,1] # exposed & case
   b.star = count.mat[,2] # exposed & control
   c.star = count.mat[,3] # unexposed & case
@@ -250,7 +248,7 @@ SP.inference.over = function(count.mat, zeta){
   c = a.star + c.star - a
   d = b.star + d.star - b
 
-  # modify the matrix
+  # Modify the matrix using the nearest neighborhood combination method
   mat = Mod.sp(cbind(a,b,c,d))
   if(is.vector(mat)){
     a = mat[1]
@@ -282,7 +280,7 @@ SP.inference.over = function(count.mat, zeta){
 #############################
 ## Blocking
 #############################
-# "smahal" and "makeblock" functions from the "blockingChallenge package"
+# Modified "smahal" and "makeblock" functions from the "blockingChallenge" package.
 # Calculating distance matrix
 smahal <- function (X){
   units <- rownames(X)
@@ -625,8 +623,8 @@ Block.inference.under = function(block.mat, eta){
   b = block.mat[,2] + block.mat[,4] - d
   block.mat[,1:4] = cbind(a,b,c,d)
   
+  # Modify the matrix using the nearest neighborhood combination method
   block.mat = Mod.block(block.mat)
-  
   if(is.vector(block.mat)){
     a = block.mat[1]
     b = block.mat[2]
@@ -663,8 +661,8 @@ Block.inference.over = function(block.mat, zeta){
   d = block.mat[,2] + block.mat[,4] - b
   block.mat[,1:4] = cbind(a,b,c,d)
   
+  # Modify the matrix using the nearest neighborhood combination method
   block.mat = Mod.block(block.mat)
-  
   if(is.vector(block.mat)){
     a = block.mat[1]
     b = block.mat[2]

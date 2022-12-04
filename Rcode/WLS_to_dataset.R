@@ -1,7 +1,7 @@
 ########################################################
 ### Creating A Dataset From the Wisconsin Longitudinal Study
 ########################################################
-## You will need to visit https://www.ssc.wisc.edu/wlsresearch/data/
+## You will need to visit https://www.ssc.wisc.edu/wlsresearch/data/downloads
 ## to download "wls_bl_14_01.dta" data. 
 
 library(foreign)
