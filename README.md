@@ -25,27 +25,3 @@ There are two directories *Rfunctions* and *Rcode*.
   *	*"WLS_analysis.R"* - contains all the statistical analysis. The two estimation methods are implemented here with the dataset obtained from "WLS_to_dataset.R". Also, we illustrate how readers can reproduce Figures 1, 2, 3, and Table 3.
 
 ---
-To run the R scripts, several packages should be installed in advance. 
-
-Attached packages:
-* Data analysis\
-doParallel_1.0.16\
-iterators_1.0.13\
-foreach_1.5.1\
-optimx_2020-4.2
-
-* Data preprocessing\
-labelled_2.7.0\
-haven_2.3.1\
-forcats_0.5.0\
-stringr_1.4.0\
-dplyr_1.0.4\
-purrr_0.3.4\
-readr_1.4.0\
-tidyr_1.1.2\
-tibble_3.0.4\
-ggplot2_3.3.2\
-tidyverse_1.3.0\
-foreign_0.8-80
----
-
