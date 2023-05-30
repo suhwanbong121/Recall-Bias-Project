@@ -9,7 +9,7 @@ These are the R code files to apply the estimation methods presented in Bong, Le
 This part aims to replicate the simulation results in Table 2 in Section 5.
 
 2. Application\
-This part aims to replicate the results from the Wisconsin Longitudinal Study (WLS) dataset discussed in Section 6. We are unable to share the original data, but it can be downloaded at [here](https://www.ssc.wisc.edu/wlsresearch/data/downloads/). We include an R code file called *"WLS_to_dataset.R"* that can create the same dataset that we used in the paper. Figures 1, 2, 3, 4 and Table 3 can be replicated with this dataset. 
+This part aims to replicate the results from the Wisconsin Longitudinal Study (WLS) dataset discussed in Section 6. We are unable to share the original data, but it can be downloaded at [here](https://www.ssc.wisc.edu/wlsresearch/data/downloads/). We include an R code file called *"WLS_to_dataset.R"* that can create the same dataset that we used in the paper. Figures 1, 2 and Table 3 can be replicated with this dataset. 
 
 ---
 #### Description of Directories
@@ -22,6 +22,6 @@ There are two directories *Rfunctions* and *Rcode*.
 * *Rcode* - contains three R scripts.
   *	*"simulation.R"* - shows R codes of simulation study discussed in Section 5, which was used to generate the results presented in Table 2.
   * *"WLS_to_dataset.R"* - shows how to create a dataset used in Section 6 from the WLS data.
-  *	*"WLS_analysis.R"* - contains all the statistical analysis. The two estimation methods are implemented here with the dataset obtained from "WLS_to_dataset.R". Also, we illustrate how readers can reproduce Figures 1, 2, 3, 4 and Table 3.
+  *	*"WLS_analysis.R"* - contains all the statistical analysis. The two estimation methods are implemented here with the dataset obtained from "WLS_to_dataset.R". Also, we illustrate how readers can reproduce Figures 1, 2 and Table 3.
 
 ---
