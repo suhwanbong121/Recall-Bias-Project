@@ -1,6 +1,6 @@
-Accounting for Recall Bias in Observational Studies
+Differential Recall Bias in Estimating Treatment Effects in Observational Studies
 ---
-These are the R code files to apply the estimation methods presented in Bong, Lee and Dominici's *"Differential recall bias in self-reported risk factors in observational studies."*
+These are the R code files to apply the estimation methods presented in Bong, Lee and Dominici's *"Differential recall bias in estimating treatment effects in observational studies."*
 
 ---
 #### Overview 
