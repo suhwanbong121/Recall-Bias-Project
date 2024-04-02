@@ -3,7 +3,8 @@
 ########################################################
 source("basic_functions.R")
 library(latex2exp)
-
+library(tidyverse)
+library(cowplot)
 ## You need to create "wls_anger.csv" first. 
 ## Use WLS_to_dataset.R to create this csv file. 
 dataset <- read.csv("wls_anger.csv")
@@ -44,15 +45,18 @@ newdata <- dataset[, c("anger75", "abuse", "female", "age", "edufa", "edumo", "m
 ### Data Analysis
 ########################################################
 
-## We will find the estimates for each eta.
+## We will find the estimates for each eta (0 <= eta <= 0.5)
 eta0.seq <- seq(0, 0.5, by = 0.01)
 eta1.seq <- seq(0, 0.5, by = 0.01)
+
+## Set the number of strata
 strata <- 20
+
+## Set the block size
 bsize <- 50
 
 ## Exposure is under-reported
 ## ML method
-ml.mat <- as.matrix(read.csv("ATE_ML.csv"))
 ml.mat <- matrix(NA, nrow = length(eta0.seq), ncol = length(eta1.seq))
 for(i in 1:length(eta0.seq)){
   for(j in 1:length(eta1.seq)){
@@ -61,7 +65,6 @@ for(i in 1:length(eta0.seq)){
 }
 
 ## Propensity score stratification
-prop.mat <- as.matrix(read.csv("ATE_Prop.csv"))
 prop.mat <-matrix(NA, nrow = length(eta0.seq), ncol = length(eta1.seq))
 prop.score.model <-glm(abuse ~ female + marital.prob + age + edufa + edumo + log.income + rural, data = newdata, family = "binomial", x = TRUE)
 prop.score.star <-prop.score.model$fitted.values
@@ -73,7 +76,6 @@ for(i in 1:length(eta0.seq)){
 }
 
 ## Prognostic score stratification
-prog.mat <- as.matrix(read.csv("ATE_Prog.csv"))
 prog.mat <- matrix(NA, nrow = length(eta0.seq), ncol = length(eta1.seq))
 newdata_ts <- newdata[newdata$abuse==1,]
 prog.score.model <- glm(anger75 ~ abuse + female + marital.prob + age + edufa + edumo + log.income + rural, data = newdata_ts, family = "binomial", x = TRUE)
@@ -87,7 +89,6 @@ for(i in 1:length(eta0.seq)){
 }
 
 ## Blocking method
-block.mat <- as.matrix(read.csv("ATE_Block.csv"))
 block.mat <-matrix(NA, nrow = length(eta0.seq), ncol = length(eta1.seq))
 set.seed(2022)
 mat <-Block.set(newdata, bsize = bsize)
@@ -232,7 +233,6 @@ plot2 <- ggplot(data = data1, mapping = aes(x = delta.seq)) +
 ## ATE when eta0 = eta1 - Figure 1(c)
 plot3 <- ggplot(data = data1, mapping = aes(x = delta.seq)) +
   labs(title = "(c)", x = TeX(r'($\eta_0 = \eta_1$)'), y = "") +
-  ylim(0.06,0.12) +
   geom_line(aes(y = ml, linetype = "ML")) +
   geom_line(aes(y = prop, linetype = "Prop")) +
   geom_line(aes(y = prog, linetype = "Prog")) +
@@ -245,7 +245,6 @@ plot3 <- ggplot(data = data1, mapping = aes(x = delta.seq)) +
 data2 <- data.frame(eta.seq, ML.est, ML.sd, Block.est, Block.sd)
 plot4 <- ggplot(data = data2, aes(x = eta.seq)) +
   labs(title = "(d)", x = TeX(r'($\eta_0 = \eta_1$)'), y = "") +
-  ylim(-0.02,0.25) +
   geom_line(aes(y = Block.est, linetype = "Block", col = "Block")) +
   geom_point(aes(y = Block.est, col = "Block")) +
   geom_errorbar(width = .02, aes(ymin = Block.est - 1.96 * Block.sd, ymax = Block.est + 1.96 * Block.sd, col = "Block", linetype = "Block")) +

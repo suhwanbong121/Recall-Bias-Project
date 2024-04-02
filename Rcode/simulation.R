@@ -1,8 +1,11 @@
+# Import functions in "basic_functions.R"
 source("basic_functions.R")
 
 ######################
 #### Generate Data
 ######################
+
+# Generate covariate vectors
 generateX <- function(n){
   x1 <- rbinom(n, size = 1, prob = 0.5)
   x2 <- rbinom(n, size = 1, prob = 0.3)
@@ -11,6 +14,7 @@ generateX <- function(n){
   return (data.frame(x1, x2, x3, x4))
 }
 
+# Generate treatment & potential outcome data
 generateData <- function(n, x, gamma_t = 0, eta = c(0,0), i){
   eta0 <- eta[1];  eta1 <- eta[2];
   x1 <- x[,1];x2 <- x[,2];x3 <- x[,3];x4 <- x[,4];
@@ -42,25 +46,32 @@ generateData <- function(n, x, gamma_t = 0, eta = c(0,0), i){
 #### Simulation Studies
 ######################
 repn = 1000
-result.mat = matrix(NA, nrow = 16, ncol = 8)
+result.mat = matrix(NA, nrow = 16, ncol = 14)
 
-# Number of strata
+## Set the number of strata
 strata = 20
 
-# Size of block
+## Set the block size
 bsize = 50
 
+## Simulation
 for (i in 1:16){
+  ## Set the recall bias parameters
   if(i<=8){eta = c(0.1, 0.1)} else {eta = c(0.1, 0.2)}
-  if(i%%2==1){n = 1000} else {n = 2000}
   eta0 = eta[1] 
   eta1 = eta[2]
   
+  ## Set the sample size
+  if(i%%2==1){n = 1000} else {n = 2000}
+  
   check = rep(NA, repn)
+  IPW.estimator = rep(NA, repn)
+  OR.estimator = rep(NA, repn)
   ML.estimator = rep(NA, repn)
   Strat.prop.estimator = rep(NA, repn)
   Strat.prog.estimator = rep(NA, repn)
   Block.estimator = rep(NA, repn)
+  Double.estimator = rep(NA, repn)
   
   X = generateX(n)
   for (j in 1:repn){
@@ -86,16 +97,31 @@ for (i in 1:16){
     count.mat = SP.set(newdata, strata + 1, prog.score.star)
     Strat.prog.estimator[j]=SP.inference.under(count.mat = count.mat, eta)$risk.diff
     
+    # 2,3*. Double Score Stratification
+    count.mat = DSP.set(newdata, 6, prop.score.star, prog.score.star)
+    Double.estimator[j]=SP.inference.under(count.mat = count.mat, eta)$risk.diff
+    
     # 4. Block
     block.mat = Block.set(newdata, bsize = bsize)
     Block.estimator[j] = Block.inference.under(block.mat, eta)$risk.diff
+    
+    # 5. Naive estimator
+    ipw.weight = newdata$trt_s / prop.score.star - (1 - newdata$trt_s) / (1 - prop.score.star)
+    IPW.estimator[j] = mean(newdata$y * ipw.weight)
+    or.model = glm(y ~ trt_s + x1 + x2 + x3 + x4, data = newdata, family = "binomial", x = TRUE)
+    or.y1.predict = predict(or.model, data.frame(trt_s = rep(1, n), x1 = newdata$x1, x2 = newdata$x2, x3 = newdata$x3, x4 = newdata$x4), type = "response")
+    or.y0.predict = predict(or.model, data.frame(trt_s = rep(0, n), x1 = newdata$x1, x2 = newdata$x2, x3 = newdata$x3, x4 = newdata$x4), type = "response")
+    OR.estimator[j] = mean(or.y1.predict - or.y0.predict)
   }
-  estimator = cbind(ML.estimator,Strat.prop.estimator,Strat.prog.estimator,Block.estimator)-check
+  estimator = cbind(IPW.estimator,OR.estimator,ML.estimator,Strat.prop.estimator,Strat.prog.estimator,Block.estimator,Double.estimator)-check
   abias.col = abs(apply(estimator, 2, mean))
   rmse.col = sqrt(apply(estimator^2, 2, mean))
-  result.mat[i,c(1,3,5,7)] = abias.col
-  result.mat[i,c(2,4,6,8)] = rmse.col
+  result.mat[i,c(1,3,5,7,9,11,13)] = abias.col
+  result.mat[i,c(2,4,6,8,10,12,14)] = rmse.col
 }
 
-# Result
-result.mat
+########################################################
+### Table 2 - Simulation Results (with all values multiplied by 100)
+
+result.mat * 100
+########################################################

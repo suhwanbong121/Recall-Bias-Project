@@ -118,8 +118,9 @@ ML.logistic.under = function(data, eta = c(0,0)){
   
   risk.diff = est.p1 - est.p0
   odds.ratio = (est.p1*(1-est.p0))/(est.p0*(1-est.p1))
+  risk.ratio = est.p1 / est.p0
   
-  return(list(potential.outcome = c(est.p1, est.p0), risk.diff = risk.diff, est.OR = odds.ratio, beta = est.beta, gamma = est.gamma, gamma.t = est.gamma_t, prop = est.e, m0 = est.m0, m1 = est.m1, likeli.val = opt.res$value))
+  return(list(potential.outcome = c(est.p1, est.p0), est.RR = risk.ratio, risk.diff = risk.diff, est.OR = odds.ratio, beta = est.beta, gamma = est.gamma, gamma.t = est.gamma_t, prop = est.e, m0 = est.m0, m1 = est.m1, likeli.val = opt.res$value))
 }
 
 ML.logistic.over = function(data, zeta = c(0,0)){
@@ -158,8 +159,9 @@ ML.logistic.over = function(data, zeta = c(0,0)){
   
   risk.diff = est.p1 - est.p0
   odds.ratio = (est.p1*(1-est.p0))/(est.p0*(1-est.p1))
+  risk.ratio = est.p1 / est.p0
   
-  return(list(potential.outcome = c(est.p1, est.p0), risk.diff = risk.diff, est.OR = odds.ratio, beta = est.beta, gamma = est.gamma, gamma.t = est.gamma_t, prop = est.e, m0 = est.m0, m1 = est.m1, likeli.val = opt.res$value))
+  return(list(potential.outcome = c(est.p1, est.p0), risk.diff = risk.diff, est.RR = risk.ratio, est.OR = odds.ratio, beta = est.beta, gamma = est.gamma, gamma.t = est.gamma_t, prop = est.e, m0 = est.m0, m1 = est.m1, likeli.val = opt.res$value))
 }
 
 #################################
@@ -221,6 +223,7 @@ SP.inference.under = function(count.mat, eta){
   }
   
   n.vec = a+b+c+d
+  trt.vec = a+b
   
   p1 = a/(a+b)
   p0 = c/(c+d)
@@ -228,9 +231,15 @@ SP.inference.under = function(count.mat, eta){
   weighted.p1 = sum(p1*n.vec)/sum(n.vec)
   weighted.p0 = sum(p0*n.vec)/sum(n.vec)
   
-  risk.diff = weighted.p1 - weighted.p0
+  trt.weighted.p1 = sum(p1*trt.vec)/sum(trt.vec)
+  trt.weighted.p0 = sum(p0*trt.vec)/sum(trt.vec)
   
-  return(list(risk.diff = risk.diff))
+  risk.diff = weighted.p1 - weighted.p0
+  odds.ratio = (weighted.p1*(1-weighted.p0))/(weighted.p0*(1-weighted.p1))
+  risk.ratio = weighted.p1 / weighted.p0
+  ATT = trt.weighted.p1 - trt.weighted.p0
+  
+  return(list(risk.diff = risk.diff, est.RR = risk.ratio, est.OR = odds.ratio, ATT = ATT))
 }
 
 # Stratification for over-reported case
@@ -263,18 +272,62 @@ SP.inference.over = function(count.mat, zeta){
   }
   
   n.vec = a+b+c+d
-  n1 = a+b
-  n0 = c+d
-
+  trt.vec = a+b
+  
   p1 = a/(a+b)
   p0 = c/(c+d)
-
+  
   weighted.p1 = sum(p1*n.vec)/sum(n.vec)
   weighted.p0 = sum(p0*n.vec)/sum(n.vec)
-
+  
+  trt.weighted.p1 = sum(p1*trt.vec)/sum(trt.vec)
+  trt.weighted.p0 = sum(p0*trt.vec)/sum(trt.vec)
+  
   risk.diff = weighted.p1 - weighted.p0
+  odds.ratio = (weighted.p1*(1-weighted.p0))/(weighted.p0*(1-weighted.p1))
+  risk.ratio = weighted.p1 / weighted.p0
+  ATT = trt.weighted.p1 - trt.weighted.p0
+  
+  return(list(risk.diff = risk.diff, est.RR = risk.ratio, est.OR = odds.ratio, ATT = ATT))
+}
 
-  return(list(risk.diff = risk.diff))
+# Double score stratification
+DSP.set = function(newdata, length, pr.score, pg.score){
+  y = colnames(newdata)[1]
+  trt_s = colnames(newdata)[2]
+  pr.seq = quantile(pr.score, prob = seq(0, 1, length.out = length))
+  pg.seq = quantile(pg.score, prob = seq(0, 1, length.out = length))
+  astar.vec = bstar.vec = cstar.vec = dstar.vec = rep(NA, (length(pr.seq)-1) * (length(pg.seq)-1))
+  for(i in 1:(length(pr.seq)-1)){
+    for(j in 1:(length(pg.seq)-1)){
+      pr.lower = pr.seq[i]
+      pr.upper = pr.seq[i+1]
+      pg.lower = pg.seq[j]
+      pg.upper = pg.seq[j+1]
+      sbg = newdata[(pr.score > pr.lower & pr.score <= pr.upper & pg.score > pg.lower & pg.score <= pg.upper),]
+      
+      if(i == 1 & j != 1){
+        sbg = newdata[(pr.score >= pr.lower & pr.score <= pr.upper & pg.score > pg.lower & pg.score <= pg.upper),]
+      }
+      
+      if(i != 1 & j == 1){
+        sbg = newdata[(pr.score > pr.lower & pr.score <= pr.upper & pg.score >= pg.lower & pg.score <= pg.upper),]
+      }
+      
+      if(i == 1 & j == 1){
+        sbg = newdata[(pr.score >= pr.lower & pr.score <= pr.upper & pg.score >= pg.lower & pg.score <= pg.upper),]
+      }
+      
+      astar.vec[(i-1) * 5 + j] = sum(sbg[trt_s] == 1 & sbg[y] == 1)
+      bstar.vec[(i-1) * 5 + j] = sum(sbg[trt_s] == 1 & sbg[y] == 0)
+      cstar.vec[(i-1) * 5 + j] = sum(sbg[trt_s] == 0 & sbg[y] == 1)
+      dstar.vec[(i-1) * 5 + j] = sum(sbg[trt_s] == 0 & sbg[y] == 0)
+    }
+  }
+  n.vec = astar.vec + bstar.vec + cstar.vec + dstar.vec
+  
+  count.mat = cbind(astar.vec, bstar.vec, cstar.vec, dstar.vec)
+  return (count.mat)
 }
 
 #############################
@@ -600,6 +653,7 @@ Block.set <- function(newdata, bsize){
   strnum = length(newdata[,1])/bsize
   astar.vec = bstar.vec = cstar.vec = dstar.vec = rep(NA, strnum)
   X1 = matrix(NA, ncol = length(X[1,]), nrow = strnum)
+  colnames(X1) = colnames(newdata)[-c(1,2)]
   for (i in 1:strnum){
     sbg = newdata[as.integer(res$strata[i,]),]
     astar.vec[i] = sum(sbg[trt_s] == 1 & sbg[y] == 1)
@@ -638,6 +692,7 @@ Block.inference.under = function(block.mat, eta){
   }
   
   n.vec = a+b+c+d
+  trt.vec = a+b
   
   p1 = a/(a+b)
   p0 = c/(c+d)
@@ -645,9 +700,15 @@ Block.inference.under = function(block.mat, eta){
   weighted.p1 = sum(p1*n.vec)/sum(n.vec)
   weighted.p0 = sum(p0*n.vec)/sum(n.vec)
   
-  risk.diff = weighted.p1 - weighted.p0
+  trt.weighted.p1 = sum(p1*trt.vec)/sum(trt.vec)
+  trt.weighted.p0 = sum(p0*trt.vec)/sum(trt.vec)
   
-  return(list(risk.diff = risk.diff))
+  risk.diff = weighted.p1 - weighted.p0
+  odds.ratio = (weighted.p1*(1-weighted.p0))/(weighted.p0*(1-weighted.p1))
+  risk.ratio = weighted.p1 / weighted.p0
+  ATT = trt.weighted.p1 - trt.weighted.p0
+  
+  return(list(risk.diff = risk.diff, est.RR = risk.ratio, est.OR = odds.ratio, ATT = ATT))
 }
 
 # Blocking for over-reported case
@@ -676,6 +737,7 @@ Block.inference.over = function(block.mat, zeta){
   }
   
   n.vec = a+b+c+d
+  trt.vec = a+b
   
   p1 = a/(a+b)
   p0 = c/(c+d)
@@ -683,15 +745,21 @@ Block.inference.over = function(block.mat, zeta){
   weighted.p1 = sum(p1*n.vec)/sum(n.vec)
   weighted.p0 = sum(p0*n.vec)/sum(n.vec)
   
-  risk.diff = weighted.p1 - weighted.p0
+  trt.weighted.p1 = sum(p1*trt.vec)/sum(trt.vec)
+  trt.weighted.p0 = sum(p0*trt.vec)/sum(trt.vec)
   
-  return(list(risk.diff = risk.diff))
+  risk.diff = weighted.p1 - weighted.p0
+  odds.ratio = (weighted.p1*(1-weighted.p0))/(weighted.p0*(1-weighted.p1))
+  risk.ratio = weighted.p1 / weighted.p0
+  ATT = trt.weighted.p1 - trt.weighted.p0
+  
+  return(list(risk.diff = risk.diff, est.RR = risk.ratio, est.OR = odds.ratio, ATT = ATT))
 }
 
 #################################
 ## Nearest Neighbor Combination
 ################################# 
-# Check if there is any problem
+# Check if there is any problem (a) or (b)
 is_prob = function(vec){
   val = FALSE
   if (vec[1]+vec[2]<=0){val = TRUE}
@@ -766,4 +834,62 @@ Mod.block = function(block.mat){
   }
   
   return (block.mat)
+}
+
+#################################
+## Covariate Balance Adjustment
+################################# 
+Check.covbal <- function(newdata, block.mat, eta){
+  X = newdata[,-c(1,2)]
+  mean.vec = apply(X, 2, mean)
+  sd.vec = apply(X, 2, sd)
+  
+  # Specify recall bias parameters
+  eta0 = eta[1]
+  eta1 = eta[2]
+  
+  c = block.mat[,3] - (eta1/(1-eta1))*block.mat[,1]
+  d = block.mat[,4] - (eta0/(1-eta0))*block.mat[,2]
+  a = block.mat[,3] + block.mat[,1] - c
+  b = block.mat[,2] + block.mat[,4] - d
+  block.mat[,1:4] = cbind(a,b,c,d)
+  
+  # Modify the matrix using the nearest neighborhood combination method
+  block.mat = Mod.block(block.mat)
+  if(is.vector(block.mat)){
+    a = block.mat[1]
+    b = block.mat[2]
+    c = block.mat[3]
+    d = block.mat[4]
+  }else{
+    a = block.mat[,1]
+    b = block.mat[,2]
+    c = block.mat[,3]
+    d = block.mat[,4]
+  }
+  covlen = length(block.mat[1,]) - 5
+  X1 = block.mat[,5:(4+covlen)]
+  
+  # Calculate adjusted weight
+  trt = a+b
+  ctrl = c+d
+  
+  # Calculate weighted average and absolute standardized mean difference
+  trt.mean = apply(X1, 2, weighted.mean, w = trt)
+  ctrl.mean = apply(X1, 2, weighted.mean, w = ctrl)
+  trt.X1 = (X1 - matrix(data = trt.mean, nrow = length(X1[,1]), ncol = 7, byrow = TRUE))^2
+  ctrl.X1 = (X1 - matrix(data = ctrl.mean, nrow = length(X1[,1]), ncol = 7, byrow = TRUE))^2
+  trt.var = apply(trt.X1, 2, weighted.mean, w = trt)
+  ctrl.var = apply(ctrl.X1, 2, weighted.mean, w = ctrl)
+  
+  # Create covariate balance table
+  cov.bal <- data.frame(Trt = rep(NA,covlen), Ctrl = rep(NA,covlen), ASMD = rep(NA, covlen))
+  row.names(cov.bal) <- colnames(X1)
+  
+  # Recover to original scale before standardization
+  cov.bal[,1] = trt.mean * sd.vec + mean.vec
+  cov.bal[,2] = ctrl.mean * sd.vec + mean.vec
+  cov.bal[,3] = abs(trt.mean - ctrl.mean) / sqrt((trt.var + ctrl.var)/2)
+  
+  return (cov.bal)
 }
